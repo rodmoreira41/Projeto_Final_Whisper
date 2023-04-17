@@ -1,0 +1,20 @@
+version: '3.7'
+
+services:
+  react:
+    depends_on:
+        - app
+    container_name: movies-react
+    image: movies-react
+    build:
+      context: .
+      dockerfile: ./dockerfile
+    environment:
+      NODE_ENV: production
+    ports:
+      - 3006:3006
+    networks:
+      - movies-network
+
+networks:
+  movies-network:
