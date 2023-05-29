@@ -1,5 +1,0 @@
-FROM mysql:5.7
-WORKDIR /app
-COPY db/biblioteca.sql .
-COPY db/setup.sh .
-RUN ./setup.sh
