@@ -8,7 +8,7 @@ app = FastAPI(
     docs_url= "/api/v2/docs",
     redoc_url= "/api/v2/redocs",
     title="API Whisper V2",
-    description="Esta é a API desenvolvida no contexto de projeto final. ####",
+    description="Esta é a API desenvolvida no contexto de projeto final. Esta é a primeira versão da API, que conta com uma base de dados simples para armazenar as transcrições, que podem ser obtidas através de um vídeo do Youtube, ou de um ficheiro mp3 ou mp4",
     version="1.0",
     openapi_url="/api/v2/docs/openapi.json"
 )
@@ -19,14 +19,15 @@ database = mysql.connector.connect(
     password="12345678",
     database="video_transcriptions"
 )
+
 model = whisper.load_model("base")
 
 @app.get('/')
 async def root():
     return {'message': 'Hello World'}
 
-@app.get('/GET_ALL_TRANSCRIPTIONS')
-async def get_all_transcriptions():
+@app.get('/GET_TRANSCRIPTIONS')
+async def get_transcriptions():
     mycursor = database.cursor()
     mycursor.execute("SELECT * FROM transcriptions")
     result = mycursor.fetchall()
@@ -38,6 +39,20 @@ async def get_all_transcriptions():
         transcriptions.append(transcription)
 
     return {'transcriptions': transcriptions}
+
+@app.get('/GET_TRANSCRIPTION/{id}')
+async def get_transcription_by_id(id: int):
+    mycursor = database.cursor()
+    sql_select = "SELECT * FROM transcriptions WHERE id_transcription = %s"
+    mycursor.execute(sql_select, (id,))
+    result = mycursor.fetchone()
+
+    if mycursor.rowcount == 0:
+        return {'message': 'Transcription not found'}
+
+    transcription = {'id': result[0], 'text': result[1]}
+
+    return {'transcription': transcription}
 
 @app.post('/POST_TRANSCRIPTION_FILE')
 async def insert_transcription_via_file(ficheiro: UploadFile = File(...)):
@@ -83,18 +98,28 @@ async def insert_transcription_via_youtube(video_url: str):
 
     return {'message': 'Transcription created successfully via Youtube link!'}
 
-@app.get('/GET_TRANSCRIPTION/{id}')
-async def get_transcriptions():
+@app.put('/EDIT_TRANSCRIPTION/{id}')
+async def edit_transcription(id: int, updated_text: str):
     mycursor = database.cursor()
-    mycursor.execute("SELECT * FROM transcriptions")
-    result = mycursor.fetchall()
+    sql_update = "UPDATE transcriptions SET text = %s WHERE id_transcription = %s"
+    mycursor.execute(sql_update, (updated_text, id))
+    database.commit()
 
-    transcriptions = []
+    if mycursor.rowcount == 0:
+        return {'message': 'Transcription not found'}
 
-    for row in result:
-        transcription = {'id': row[0], 'text': row[1]}
-        transcriptions.append(transcription)
+    return {'message': 'Transcription updated successfully!'}
 
-    return {'transcriptions': transcriptions}
+@app.delete('/DELETE_TRANSCRIPTION/{id}')
+async def delete_transcription(id: int):
+    mycursor = database.cursor()
+    sql_delete = "DELETE FROM transcriptions WHERE id_transcription = %s"
+    mycursor.execute(sql_delete, (id,))
+    database.commit()
+
+    if mycursor.rowcount == 0:
+        return {'message': 'Transcription not found'}
+
+    return {'message': f'Transcription number {id} deleted successfully!'}
 
 
