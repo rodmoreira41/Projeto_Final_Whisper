@@ -2,7 +2,7 @@ from fastapi import FastAPI, UploadFile, File
 import mysql.connector
 import whisper
 import os
-
+from pytube import YouTube
 
 app = FastAPI(
     docs_url= "/api/v2/docs",
@@ -39,8 +39,8 @@ async def get_all_transcriptions():
 
     return {'transcriptions': transcriptions}
 
-@app.post('/POST_TRANSCRIPTION')
-async def insert_transcription(ficheiro: UploadFile = File(...)):
+@app.post('/POST_TRANSCRIPTION_FILE')
+async def insert_transcription_via_file(ficheiro: UploadFile = File(...)):
     
     temp_file_path = f"tmp/{ficheiro.filename}"
     with open(temp_file_path, "wb") as temp_file:
@@ -51,15 +51,37 @@ async def insert_transcription(ficheiro: UploadFile = File(...)):
     text = transcription["text"]
 
     mycursor = database.cursor()
-
     sql_insert = "INSERT INTO transcriptions (text) VALUES (%s)"
     mycursor.execute(sql_insert, (text,))
-    
     database.commit()
 
     os.remove(temp_file_path)
      
-    return {'message': 'Transcription created successfully!'}
+    return {'message': 'Transcription created successfully via file sumbission!'}
+
+@app.post('/POST_TRANSCRIPTION_YOUTUBE')
+async def insert_transcription_via_youtube(video_url: str):
+    # Download the YouTube video as an MP4 file
+    temp_file_path = "tmp/video.mp4"
+
+    youtube = YouTube(video_url)
+    video = youtube.streams.filter(only_audio=True).first()
+    video.download(output_path="tmp", filename="video.mp4")
+
+    # Transcribe the MP4 video using the Whisper model
+    transcription = model.transcribe(temp_file_path)
+    text = transcription["text"]
+
+    # Insert the transcription into the database
+    mycursor = database.cursor()
+    sql_insert = "INSERT INTO transcriptions (text) VALUES (%s)"
+    mycursor.execute(sql_insert, (text,))
+    database.commit()
+
+    # Clean up the temporary video file
+    os.remove(temp_file_path)
+
+    return {'message': 'Transcription created successfully via Youtube link!'}
 
 @app.get('/GET_TRANSCRIPTION/{id}')
 async def get_transcriptions():
