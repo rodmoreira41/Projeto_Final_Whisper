@@ -3,6 +3,7 @@ import mysql.connector
 import whisper
 import os
 from pytube import YouTube
+import openai
 
 app = FastAPI(
     docs_url= "/api/v2/docs",
@@ -48,7 +49,7 @@ async def get_transcription_by_id(id: int):
     result = mycursor.fetchone()
 
     if mycursor.rowcount == 0:
-        return {'message': 'Transcription not found'}
+        return {'message': 'The solicited transcription does not exist'}
 
     transcription = {'id': result[0], 'text': result[1]}
 
@@ -106,9 +107,9 @@ async def edit_transcription(id: int, updated_text: str):
     database.commit()
 
     if mycursor.rowcount == 0:
-        return {'message': 'Transcription not found'}
+        return {'message': 'The solicited transcription does not exist'}
 
-    return {'message': 'Transcription updated successfully!'}
+    return {'message': f'Transcription number {id} updated successfully!'}
 
 @app.delete('/DELETE_TRANSCRIPTION/{id}')
 async def delete_transcription(id: int):
@@ -118,7 +119,7 @@ async def delete_transcription(id: int):
     database.commit()
 
     if mycursor.rowcount == 0:
-        return {'message': 'Transcription not found'}
+        return {'message': 'The solicited transcription does not exist'}
 
     return {'message': f'Transcription number {id} deleted successfully!'}
 
