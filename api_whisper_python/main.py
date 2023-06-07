@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, UploadFile, File
 import whisper
 import mysql.connector
 
@@ -24,28 +24,32 @@ model = whisper.load_model("base")
 async def root():
     return {'message': 'Hello World'}
 
-@app.post('/transcriptions')
-async def create_transcription(video_path: str):
-    transcription = model.transcribe(video_path)
+@app.post('/POST_TRANSCRIPTION')
+async def create_transcription(video: UploadFile = File(...)):
+    transcription = model.transcribe(video.file)
     text = transcription["text"]
 
     mycursor = database.cursor()
 
     sql_insert = "INSERT INTO transcriptions (text) VALUES (%s)"
     mycursor.execute(sql_insert, (text,))
-
+    
     database.commit()
 
     return {'message': 'Transcription created successfully'}
 
-@app.get('/transcriptions')
+@app.get('/GET_TRANSCRIPTIONS')
 async def get_transcriptions():
     mycursor = database.cursor()
     mycursor.execute("SELECT * FROM transcriptions")
     result = mycursor.fetchall()
 
     transcriptions = []
+
     for row in result:
-        transcriptions.append(row[0])
+        transcription = {'id': row[0], 'text': row[1]}
+        transcriptions.append(transcription)
 
     return {'transcriptions': transcriptions}
+
+
