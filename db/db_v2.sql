@@ -1,12 +1,13 @@
-DROP SCHEMA IF EXISTS `video_transcriptions`;
-CREATE SCHEMA `video_transcriptions`;
-USE `video_transcriptions`;
+DROP SCHEMA IF EXISTS `whisper_project`;
+CREATE SCHEMA `whisper_project`;
+USE `whisper_project`;
 
 DROP TABLE IF EXISTS `transcriptions`;
 
-CREATE TABLE `transcription` (
+CREATE TABLE `transcriptions` (
   `id_transcription` int NOT NULL AUTO_INCREMENT,
   `text` text DEFAULT NULL,
+  `source` varchar(200)
   PRIMARY KEY (`id_transcription`)
 ) ENGINE=InnoDB;
 

@@ -4,7 +4,7 @@ USE `video_transcriptions`;
 
 DROP TABLE IF EXISTS `transcriptions`;
 
-CREATE TABLE `transcription` (
+CREATE TABLE `transcriptions` (
   `id_transcription` int NOT NULL AUTO_INCREMENT,
   `text` text DEFAULT NULL,
   PRIMARY KEY (`id_transcription`)
