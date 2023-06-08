@@ -6,19 +6,19 @@ from pytube import YouTube
 import openai
 
 app = FastAPI(
-    docs_url= "/api/v2/docs",
-    redoc_url= "/api/v2/redocs",
+    docs_url= "/api/v1/docs",
+    redoc_url= "/api/v1/redocs",
     title="API Whisper V2",
     description="Esta é a API desenvolvida no contexto de projeto final. Esta é a primeira versão da API, que conta com uma base de dados simples para armazenar as transcrições, que podem ser obtidas através de um vídeo do Youtube, ou de um ficheiro mp3 ou mp4",
     version="1.0",
-    openapi_url="/api/v2/docs/openapi.json"
+    openapi_url="/api/v1/docs/openapi.json"
 )
 
 database = mysql.connector.connect(
     host="localhost",
     user="root",
     password="12345678",
-    database="video_transcriptions"
+    database="video_transcriptions_v1"
 )
 
 model = whisper.load_model("base")
