@@ -7,7 +7,8 @@ DROP TABLE IF EXISTS `transcriptions`;
 CREATE TABLE `transcriptions` (
   `id_transcription` int NOT NULL AUTO_INCREMENT,
   `text` text DEFAULT NULL,
-  `source` varchar(200)
+  `source` varchar(200),
+  `source_type` varchar(20),
   PRIMARY KEY (`id_transcription`)
 ) ENGINE=InnoDB;
 

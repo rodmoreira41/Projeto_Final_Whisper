@@ -35,7 +35,7 @@ async def get_all_transcriptions():
     transcriptions = []
 
     for row in result:
-        transcription = {'id': row[0], 'text': row[1], 'source': row[2]}
+        transcription = {'id': row[0], 'text': row[1], 'source': row[2], 'source_type': row[3]}
         transcriptions.append(transcription)
 
     return {'transcriptions': transcriptions}
@@ -50,7 +50,7 @@ async def get_transcription_by_id(id: int):
     if mycursor.rowcount == 0:
         return {'message': 'The solicited transcription does not exist'}
 
-    transcription = {'id': result[0], 'text': result[1], 'source': result[2]}
+    transcription = {'id': result[0], 'text': result[1], 'source': result[2], 'source_type': result[3]}
 
     return {'transcription': transcription}
 
@@ -66,13 +66,15 @@ async def insert_transcription_via_file(ficheiro: UploadFile = File(...)):
     text = transcription["text"]
 
     mycursor = database.cursor()
-    sql_insert = "INSERT INTO transcriptions (text, source) VALUES (%s, 'file')"
-    mycursor.execute(sql_insert, (text,))
+    sql_insert = "INSERT INTO transcriptions (text, source, source_type) VALUES (%s, %s, 'file_submission')"
+    mycursor.execute(sql_insert, (text, ficheiro.filename,))
     database.commit()
 
+    transcription_id = mycursor.lastrowid  # Retrieve the ID of the last inserted row
+    
     os.remove(temp_file_path)
      
-    return {'message': 'Transcription created successfully via file sumbission!'}
+    return {'message': f'Transcription with the ID number {transcription_id} was created successfully via file submission!'}
 
 @transcriptions_router.post('/POST_TRANSCRIPTION_YOUTUBE')
 async def insert_transcription_via_youtube(video_url: str):
@@ -89,14 +91,16 @@ async def insert_transcription_via_youtube(video_url: str):
 
     # Insert the transcription into the database
     mycursor = database.cursor()
-    sql_insert = "INSERT INTO transcriptions (text, source) VALUES (%s, 'video_url')"
-    mycursor.execute(sql_insert, (text,))
+    sql_insert = "INSERT INTO transcriptions (text, source, source_type) VALUES (%s, %s, 'video_url')"
+    mycursor.execute(sql_insert, (text, video_url, ))
     database.commit()
+
+    transcription_id = mycursor.lastrowid  # Retrieve the ID of the last inserted row
 
     # Clean up the temporary video file
     os.remove(temp_file_path)
 
-    return {'message': 'Transcription created successfully via Youtube link!'}
+    return {'message': f'Transcription with the ID number {transcription_id} was created successfully via Youtube link!'}
 
 @transcriptions_router.put('/EDIT_TRANSCRIPTION/{id}')
 async def edit_transcription(id: int, updated_text: str):
@@ -120,7 +124,7 @@ async def delete_transcription(id: int):
     if mycursor.rowcount == 0:
         return {'message': 'The solicited transcription does not exist'}
 
-    return {'message': f'Transcription number {id} deleted successfully!'}
+    return {'message': f'Transcription with the ID number {id} deleted successfully!'}
 
 app.include_router(transcriptions_router)
 
