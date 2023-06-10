@@ -58,7 +58,6 @@ async def transcriptions_table_verification():
 
     return {'transcriptions': transcriptions}
 
-
 @app.get('/API_KEY_TABLE')
 async def api_key_table_verification():
     mycursor = database.cursor()
@@ -75,21 +74,21 @@ async def api_key_table_verification():
 
 @api_key_router.post("/CREATE_API_KEY")
 async def create_your_api_key():
-    # Generate a random UUID API Key
+    # Geração de uma UUID API Key aleatória
     api_key = str(uuid.uuid4())
 
-    # Store the API Key in the database (replace with your own storage mechanism)
+    # Armazenamento da API Key na base de dados
     mycursor = database.cursor()
     sql_insert = "INSERT INTO api_keys (api_key) VALUES (%s)"
     mycursor.execute(sql_insert, (api_key,))
     database.commit()
 
-    # Return the newly created API Key to the user
+    # Divulgação da API Key com o utilizador
     return {"message": 'Your API Key was created. Please save it somewhere safe and accessibe, you will need it to interact with the API', "api_key": api_key}
 
 @transcriptions_router.get('/GET_TRANSCRIPTIONS')
 async def get_transcriptions(api_key: str = Header(...)):
-    # Check if the API key exists
+    # Verifica se a API Key existe
     mycursor = database.cursor()
     sql_check_api_key = "SELECT COUNT(*) FROM api_keys WHERE api_key = %s"
     mycursor.execute(sql_check_api_key, (api_key,))
@@ -98,7 +97,7 @@ async def get_transcriptions(api_key: str = Header(...)):
     if api_key_count == 0:
         return {'message': 'ERROR: The provided API Key does not exist.'}
     
-    # Fetch transcriptions associated with the API key
+    # Seleciona transcrições associadas com a API Key utilizada
     sql_select = "SELECT * FROM transcriptions WHERE api_key = %s"
     mycursor.execute(sql_select, (api_key,))
     result = mycursor.fetchall()
@@ -117,7 +116,7 @@ async def get_transcriptions(api_key: str = Header(...)):
 
 @transcriptions_router.post('/POST_TRANSCRIPTION_FILE')
 async def insert_transcription_via_file(ficheiro: UploadFile = File(...), api_key: str = Header(...)):
-    # Check if the API key exists
+    # Verifica se a API Key existe
     mycursor = database.cursor()
     sql_check_api_key = "SELECT COUNT(*) FROM api_keys WHERE api_key = %s"
     mycursor.execute(sql_check_api_key, (api_key,))
@@ -126,30 +125,31 @@ async def insert_transcription_via_file(ficheiro: UploadFile = File(...), api_ke
     if api_key_count == 0:
         return {'message': 'ERROR: The provided API Key does not exist.'}
     
-    # Process the transcription
+    # Processamento do ficheiro recebido
     temp_file_path = f"tmp/{ficheiro.filename}"
     with open(temp_file_path, "wb") as temp_file:
         contents = await ficheiro.read()
         temp_file.write(contents)
-        
+    
+    # Transcrição do ficheiro através do modelo Whisper
     transcription = model.transcribe(temp_file_path)
     text = transcription["text"]
 
-    # Insert the transcription into the database
+    # Inserção da transcrição na tabela "transcriptions" da base de dados
     sql_insert = "INSERT INTO transcriptions (text, source, source_type, api_key) VALUES (%s, %s, %s, %s)"
     mycursor.execute(sql_insert, (text, ficheiro.filename, 'file_submission', api_key))
     database.commit()
 
-    id_transcription = mycursor.lastrowid  # Retrieve the ID of the last inserted row
+    id_transcription = mycursor.lastrowid  # Determina o ID da última transcrição inserida, para demonstrá-lo na mensagem de retorno
     
-    os.remove(temp_file_path)
+    os.remove(temp_file_path) # faz a limpeza da pasta temporária onde foi guardado o ficheiro
      
     return {'message': f'Transcription with the ID number {id_transcription} was created successfully via file submission!', 'transcribed_text': {text}}
 
 @transcriptions_router.post('/POST_TRANSCRIPTION_YOUTUBE')
 async def insert_transcription_via_youtube(video_url: str, api_key: str = Header(...)):
     
-    # Check if the API key exists
+    # Verifica se a API Key existe
     mycursor = database.cursor()
     sql_check_api_key = "SELECT COUNT(*) FROM api_keys WHERE api_key = %s"
     mycursor.execute(sql_check_api_key, (api_key,))
@@ -158,27 +158,26 @@ async def insert_transcription_via_youtube(video_url: str, api_key: str = Header
     if api_key_count == 0:
         return {'message': 'ERROR: The provided API Key does not exist.'}
     
-    # Download the YouTube video as an MP4 file
+    # Download do vídeo do YouTube no formato de um ficheiro MP4
     temp_file_path = "tmp/video.mp4"
 
     youtube = YouTube(video_url)
     video = youtube.streams.filter(only_audio=True).first()
     video.download(output_path="tmp", filename="video.mp4")
 
-    # Transcribe the MP4 video using the Whisper model
+    # Transcrição do ficheiro MP4 através do modelo Whisper
     transcription = model.transcribe(temp_file_path)
     text = transcription["text"]
 
-    # Insert the transcription into the database
+    # Inserção da transcrição na tabela "transcriptions" da base de dados
     mycursor = database.cursor()
     sql_insert = "INSERT INTO transcriptions (text, source, source_type, api_key) VALUES (%s, %s, %s, %s)"
     mycursor.execute(sql_insert, (text, video_url,'video_url', api_key))
     database.commit()
 
-    id_transcription = mycursor.lastrowid  # Retrieve the ID of the last inserted row
+    id_transcription = mycursor.lastrowid  # Determina o ID da última transcrição inserida, para demonstrá-lo na mensagem de retorno
 
-    # Clean up the temporary video file
-    os.remove(temp_file_path)
+    os.remove(temp_file_path) # faz a limpeza da pasta temporária onde foi guardado o ficheiro
 
     return {'message': f'Transcription with the ID number {id_transcription} was created successfully via Youtube link!', 'transcribed_text': {text}}
 
@@ -188,7 +187,7 @@ class EditTranscriptionRequest(BaseModel):
 @transcriptions_router.put('/EDIT_TRANSCRIPTION/{id}')
 async def edit_transcription(id_transcription: int, request_data: EditTranscriptionRequest, api_key: str = Header(...)):
     
-    # Check if the API key exists
+    # Verifica se a API Key existe
     mycursor = database.cursor()
     sql_check_api_key = "SELECT COUNT(*) FROM api_keys WHERE api_key = %s"
     mycursor.execute(sql_check_api_key, (api_key,))
@@ -197,7 +196,7 @@ async def edit_transcription(id_transcription: int, request_data: EditTranscript
     if api_key_count == 0:
         return {'message': 'ERROR: The provided API Key does not exist.'}
 
-    # Check if the transcription with the provided ID exists and matches the API key
+    # Esta query de SQL permite verificar simultaneamente se o ID da transcrição existe e se este está associado à API Key fornecida
     sql_check_transcription = "SELECT COUNT(*) FROM transcriptions WHERE id_transcription = %s AND api_key = %s"
     mycursor.execute(sql_check_transcription, (id_transcription, api_key))
     transcription_count = mycursor.fetchone()[0]
@@ -205,9 +204,9 @@ async def edit_transcription(id_transcription: int, request_data: EditTranscript
     if transcription_count == 0:
         return {'message': 'ERROR: The ID of transcription provided does not exist or cannot be managed by this API Key.'}
 
-    updated_text = request_data.updated_text
+    updated_text = request_data.updated_text #atribuição do valor pedido no body request a uma variável
 
-    # Update the transcription in the database
+    # Atualização da transcrição na tabela da base de dados
     sql_update = "UPDATE transcriptions SET text = %s WHERE id_transcription = %s"
     mycursor.execute(sql_update, (updated_text, id_transcription))
     database.commit()
@@ -216,7 +215,7 @@ async def edit_transcription(id_transcription: int, request_data: EditTranscript
 
 @transcriptions_router.delete('/DELETE_TRANSCRIPTION/{id}')
 async def delete_transcription(id_transcription: int, api_key: str = Header(...)):
-    # Check if the API key exists
+    # Verifica se a API Key existe
     mycursor = database.cursor()
     sql_check_api_key = "SELECT COUNT(*) FROM api_keys WHERE api_key = %s"
     mycursor.execute(sql_check_api_key, (api_key,))
@@ -225,7 +224,7 @@ async def delete_transcription(id_transcription: int, api_key: str = Header(...)
     if api_key_count == 0:
         return {'message': 'ERROR: The provided API Key does not exist.'}
 
-    # Check if the transcription with the provided ID exists and matches the API key
+    # Esta query de SQL permite verificar simultaneamente se o ID da transcrição existe e se este está associado à API Key fornecida
     sql_check_transcription = "SELECT COUNT(*) FROM transcriptions WHERE id_transcription = %s AND api_key = %s"
     mycursor.execute(sql_check_transcription, (id_transcription, api_key))
     transcription_count = mycursor.fetchone()[0]
@@ -233,7 +232,7 @@ async def delete_transcription(id_transcription: int, api_key: str = Header(...)
     if transcription_count == 0:
         return {'message': 'ERROR: The ID of transcription provided does not exist or cannot be managed by this API Key.'}
 
-    # Delete the transcription from the database
+    # Apaga a transcrição da tabela da base de dados
     sql_delete = "DELETE FROM transcriptions WHERE id_transcription = %s"
     mycursor.execute(sql_delete, (id_transcription,))
     database.commit()
@@ -246,7 +245,7 @@ class SmartSearchRequest(BaseModel):
     
 @smart_search_router.post('/SMART_SEARCH')
 async def smart_search(id_transcription: int, query: str):
-    # Retrieve the specified transcription from the database
+    # Obtém a transcrição escolhida da base de dados
     mycursor = database.cursor()
     sql_select = "SELECT text FROM transcriptions WHERE id_transcription = %s"
     mycursor.execute(sql_select, (id_transcription,))
@@ -257,7 +256,7 @@ async def smart_search(id_transcription: int, query: str):
     
     transcription_text = result[0]  # Extract the transcription text
 
-    # Perform the smart search using OpenAI's API
+    # Efetua uma "Smart Search" através da API do OpenAI
     response = openai.Completion.create(
         engine="text-davinci-003",
         prompt=query,
@@ -269,7 +268,7 @@ async def smart_search(id_transcription: int, query: str):
         presence_penalty=0.0
     )
 
-    # Extract the relevant answer from the OpenAI response
+    # Extração da resposta da API do OpenAI 
     answer = response.choices[0].text.strip()
 
     return {'query': query, 'answer': answer}
