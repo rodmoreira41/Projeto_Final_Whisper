@@ -44,6 +44,35 @@ api_key_router = APIRouter(prefix="", tags=["API Key Creation"])
 transcriptions_router = APIRouter(prefix="", tags=["Transcrições"])
 smart_search_router = APIRouter(prefix="", tags=["Smart Search Engine"])
 
+@app.get('/TRANSCRIPTIONS_TABLE')
+async def transcriptions_table_verification():
+    mycursor = database.cursor()
+    mycursor.execute("SELECT * FROM transcriptions")
+    result = mycursor.fetchall()
+
+    transcriptions = []
+
+    for row in result:
+        transcription = {'id': row[0], 'text': row[1], 'source': row[2], 'source_type': row[3], 'api_key': row[4]}
+        transcriptions.append(transcription)
+
+    return {'transcriptions': transcriptions}
+
+
+@app.get('/API_KEY_TABLE')
+async def api_key_table_verification():
+    mycursor = database.cursor()
+    mycursor.execute("SELECT * FROM api_keys")
+    result = mycursor.fetchall()
+
+    api_keys = []
+
+    for row in result:
+        api_key = {'id': row[0], 'api_key': row[1]}
+        api_keys.append(api_key)
+
+    return {'api_keys': api_keys}
+
 @api_key_router.post("/CREATE_API_KEY")
 async def create_your_api_key():
     # Generate a random UUID API Key
