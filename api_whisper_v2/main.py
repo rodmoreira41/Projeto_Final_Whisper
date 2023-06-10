@@ -3,6 +3,7 @@ import mysql.connector
 import whisper
 import os
 from pytube import YouTube
+from pydantic import BaseModel
 import openai
 
 
@@ -17,8 +18,8 @@ app = FastAPI(
 
 database = mysql.connector.connect(
     host="localhost",
-    user="root",
-    password="12345678",
+    user="root", # ou o utilizador da máquina local
+    password="12345678", # ou a password do utilizador da máquina local
     database="whisper_project" #"video_transcriptions"
 )
 
@@ -48,7 +49,7 @@ async def get_transcription_by_id(id: int):
     result = mycursor.fetchone()
 
     if mycursor.rowcount == 0:
-        return {'message': 'The solicited transcription does not exist'}
+        return {'message': f'ERROR: The transcription with the ID number {id} does not exist'}
 
     transcription = {'id': result[0], 'text': result[1], 'source': result[2], 'source_type': result[3]}
 
@@ -74,7 +75,7 @@ async def insert_transcription_via_file(ficheiro: UploadFile = File(...)):
     
     os.remove(temp_file_path)
      
-    return {'message': f'Transcription with the ID number {transcription_id} was created successfully via file submission!'}
+    return {'message': f'Transcription with the ID number {transcription_id} was created successfully via file submission!', 'transcribed_text': {text}}
 
 @transcriptions_router.post('/POST_TRANSCRIPTION_YOUTUBE')
 async def insert_transcription_via_youtube(video_url: str):
@@ -100,19 +101,24 @@ async def insert_transcription_via_youtube(video_url: str):
     # Clean up the temporary video file
     os.remove(temp_file_path)
 
-    return {'message': f'Transcription with the ID number {transcription_id} was created successfully via Youtube link!'}
+    return {'message': f'Transcription with the ID number {transcription_id} was created successfully via Youtube link!', 'transcribed_text': {text}}
 
+class EditTranscriptionRequest(BaseModel):
+    updated_text: str
+    
 @transcriptions_router.put('/EDIT_TRANSCRIPTION/{id}')
-async def edit_transcription(id: int, updated_text: str):
+async def edit_transcription(id: int, request_data: EditTranscriptionRequest):
+    updated_text = request_data.updated_text
+
     mycursor = database.cursor()
     sql_update = "UPDATE transcriptions SET text = %s WHERE id_transcription = %s"
     mycursor.execute(sql_update, (updated_text, id))
     database.commit()
 
     if mycursor.rowcount == 0:
-        return {'message': 'The solicited transcription does not exist'}
+        return {'message': f'ERROR: The transcription with the ID number {id} does not exist'}
 
-    return {'message': f'Transcription number {id} updated successfully!'}
+    return {'message': f'SUCCESS: Transcription with the ID number {id} was updated successfully!', 'modified_text': updated_text}
 
 @transcriptions_router.delete('/DELETE_TRANSCRIPTION/{id}')
 async def delete_transcription(id: int):
@@ -122,9 +128,9 @@ async def delete_transcription(id: int):
     database.commit()
 
     if mycursor.rowcount == 0:
-        return {'message': 'The solicited transcription does not exist'}
+        return {'message': f'ERROR: The transcription with the ID number {id} does not exist'}
 
-    return {'message': f'Transcription with the ID number {id} deleted successfully!'}
+    return {'message': f'SUCCESS: Transcription with the ID number {id} was deleted successfully!'}
 
 app.include_router(transcriptions_router)
 
