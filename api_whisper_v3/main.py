@@ -6,13 +6,29 @@ import whisper, uuid, os, openai
 
 #openai.api_key = "<OPENAI-API-KEY>"
 
+tags_metadata = [
+    {
+        "name": "API Key Creation",
+        "description": "Esta secção serve para efetuar a criação de uma API Key, que será necessária para o utilizador interagir com a API.",
+    },
+    {
+        "name": "Transcrições",
+        "description": "Aqui um utilizador pode utilizar os métodos POST para efetuar a conversão de som de ficheiros mp3, mp4 ou até mesmo de vídeos do youtube, para texto. Poderá ainda gerir todas as transcrições que efetuar",
+    },
+    {
+        "name": "Smart Search Engine",
+        "description": "Esta é uma secção em desenvolvimento.",
+    },
+]
+
 app = FastAPI(
     docs_url= "/docs",
     redoc_url= "/redocs",
     title="API Whisper V2",
     description="Esta é a API desenvolvida no contexto de projeto final. Esta é a terceira versão da API, onde será implementada autenticação por API KEY.",
     version="3.0",
-    openapi_url="/docs/openapi.json"
+    openapi_url="/docs/openapi.json",
+    openapi_tags=tags_metadata
 )
 
 database = mysql.connector.connect(
@@ -25,7 +41,7 @@ database = mysql.connector.connect(
 model = whisper.load_model("base")
 
 api_key_router = APIRouter(prefix="", tags=["API Key Creation"])
-transcriptions_router = APIRouter(prefix="", tags=["Transcriptions Manager"])
+transcriptions_router = APIRouter(prefix="", tags=["Transcrições"])
 smart_search_router = APIRouter(prefix="", tags=["Smart Search Engine"])
 
 @api_key_router.post("/CREATE_API_KEY")
