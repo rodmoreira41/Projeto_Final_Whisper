@@ -12,7 +12,7 @@ app = FastAPI(
     docs_url= "/api/v2/docs",
     redoc_url= "/api/v2/redocs",
     title="API Whisper V2",
-    description="Esta é a API desenvolvida no contexto de projeto final. Esta é a terceira versão da API, que conta com uma base de dados simples para armazenar as transcrições, que podem ser obtidas através de um vídeo do Youtube, ou de um ficheiro mp3 ou mp4",
+    description="Esta é a API desenvolvida no contexto de projeto final. Esta é a segunda versão da API, onde está presente a tentativa da implementação de um motor de busca inteligente.",
     version="2.0",
     openapi_url="/api/v2/docs/openapi.json"
 )
