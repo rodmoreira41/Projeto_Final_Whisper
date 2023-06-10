@@ -9,11 +9,11 @@ import whisper, uuid, os, openai
 tags_metadata = [
     {
         "name": "API Key Creation",
-        "description": "Esta secção serve para efetuar a criação de uma API Key, que será necessária para o utilizador interagir com a API.",
+        "description": "Esta secção serve para efetuar a criação de API Keys, necessárias para interagção do utilizador com a API.",
     },
     {
         "name": "Transcrições",
-        "description": "Aqui um utilizador pode utilizar os métodos POST para efetuar a conversão de som de ficheiros mp3, mp4 ou até mesmo de vídeos do youtube, para texto. Poderá ainda gerir todas as transcrições que efetuar",
+        "description": "Os métodos POST disponibilizados servem para efetuar a conversão de som de ficheiros mp3, mp4 ou até mesmo de vídeos do youtube, para texto. O utilizador poderá ainda gerir todas as transcrições que efetuar, com recurso à sua API Key",
     },
     {
         "name": "Smart Search Engine",
@@ -25,7 +25,7 @@ app = FastAPI(
     docs_url= "/docs",
     redoc_url= "/redocs",
     title="API Whisper V2",
-    description="Esta é a API desenvolvida no contexto de projeto final. Esta é a terceira versão da API, onde será implementada autenticação por API KEY.",
+    description="Esta é a API desenvolvida no contexto de projeto final. O objetivo é que cada utilizador tenha a possibilidade de transcrever o som de vídeos, através do Whisper V2. Para interagir com a API, terá de criar uma API Key, que estará associada a todos os registos que efetuar.",
     version="3.0",
     openapi_url="/docs/openapi.json",
     openapi_tags=tags_metadata
