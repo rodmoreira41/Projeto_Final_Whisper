@@ -111,7 +111,6 @@ class EditTranscriptionRequest(BaseModel):
 @transcriptions_router.put('/EDIT_TRANSCRIPTION/{id}')
 async def edit_transcription(id_transcription: int, request_data: EditTranscriptionRequest):
     updated_text = request_data.updated_text
-
     mycursor = database.cursor()
     sql_update = "UPDATE transcriptions SET text = %s WHERE id_transcription = %s"
     mycursor.execute(sql_update, (updated_text, id_transcription))
