@@ -4,7 +4,7 @@ from pydantic import BaseModel
 import mysql.connector
 import whisper, uuid, os, openai
 
-#openai.api_key = "<OPENAI-API-KEY>"
+#openai.api_key = "<YOUR-API-KEY>"
 
 tags_metadata = [
     {
@@ -72,7 +72,7 @@ async def api_key_table_verification():
 
     return {'api_keys': api_keys}
 
-@api_key_router.post("/CREATE_API_KEY")
+@api_key_router.post("/API_KEY")
 async def create_your_api_key():
     # Geração de uma UUID API Key aleatória
     api_key = str(uuid.uuid4())
@@ -86,7 +86,7 @@ async def create_your_api_key():
     # Divulgação da API Key com o utilizador
     return {"message": 'Your API Key was created. Please save it somewhere safe and accessibe, you will need it to interact with the API', "api_key": api_key}
 
-@transcriptions_router.get('/GET_TRANSCRIPTIONS')
+@transcriptions_router.get('/TRANSCRIPTIONS')
 async def get_transcriptions(api_key: str = Header(...)):
     # Verifica se a API Key existe
     mycursor = database.cursor()
@@ -114,7 +114,7 @@ async def get_transcriptions(api_key: str = Header(...)):
     return {'transcriptions': transcriptions}
 
 
-@transcriptions_router.post('/POST_TRANSCRIPTION_FILE')
+@transcriptions_router.post('/TRANSCRIPTION_FILE')
 async def insert_transcription_via_file(ficheiro: UploadFile = File(...), api_key: str = Header(...)):
     # Verifica se a API Key existe
     mycursor = database.cursor()
@@ -146,7 +146,7 @@ async def insert_transcription_via_file(ficheiro: UploadFile = File(...), api_ke
      
     return {'message': f'Transcription with the ID number {id_transcription} was created successfully via file submission!', 'transcribed_text': {text}}
 
-@transcriptions_router.post('/POST_TRANSCRIPTION_YOUTUBE')
+@transcriptions_router.post('/TRANSCRIPTION_YOUTUBE')
 async def insert_transcription_via_youtube(video_url: str, api_key: str = Header(...)):
     
     # Verifica se a API Key existe
@@ -184,7 +184,7 @@ async def insert_transcription_via_youtube(video_url: str, api_key: str = Header
 class EditTranscriptionRequest(BaseModel):
     updated_text: str
     
-@transcriptions_router.put('/EDIT_TRANSCRIPTION/{id}')
+@transcriptions_router.put('/TRANSCRIPTION/{id}')
 async def edit_transcription(id_transcription: int, request_data: EditTranscriptionRequest, api_key: str = Header(...)):
     
     # Verifica se a API Key existe
@@ -213,7 +213,7 @@ async def edit_transcription(id_transcription: int, request_data: EditTranscript
 
     return {'message': f'SUCCESS: Transcription with the ID number {id_transcription} was updated successfully!', 'modified_text': updated_text}
 
-@transcriptions_router.delete('/DELETE_TRANSCRIPTION/{id}')
+@transcriptions_router.delete('/TRANSCRIPTION/{id}')
 async def delete_transcription(id_transcription: int, api_key: str = Header(...)):
     # Verifica se a API Key existe
     mycursor = database.cursor()
@@ -254,7 +254,7 @@ async def smart_search(id_transcription: int, query: str):
     if mycursor.rowcount == 0:
         return {'message': f'ERROR: The transcription with the ID number {id_transcription} does not exist'}
     
-    transcription_text = result[0]  # Extract the transcription text
+    transcription_text = result[0]  # Extração do texto transcrito para uma variável
 
     # Efetua uma "Smart Search" através da API do OpenAI
     response = openai.Completion.create(
