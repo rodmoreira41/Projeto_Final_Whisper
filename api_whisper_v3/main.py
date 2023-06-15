@@ -19,6 +19,10 @@ tags_metadata = [
         "name": "Smart Search Engine",
         "description": "Esta é uma secção em desenvolvimento.",
     },
+    {
+        "name": "Database Verification",
+        "description": "Esta secção permite controlar e validar os registos das bases de dados 'transcriptions' e 'api_keys', pelo que serve apenas como demonstração.",
+    },
 ]
 
 app = FastAPI(
@@ -43,36 +47,9 @@ model = whisper.load_model("base")
 api_key_router = APIRouter(prefix="", tags=["API Key Creation"])
 transcriptions_router = APIRouter(prefix="", tags=["Transcrições"])
 smart_search_router = APIRouter(prefix="", tags=["Smart Search Engine"])
+database_router = APIRouter(prefix="", tags=["Database Verification"])
 
-@app.get('/TRANSCRIPTIONS_TABLE')
-async def transcriptions_table_verification():
-    mycursor = database.cursor()
-    mycursor.execute("SELECT * FROM transcriptions")
-    result = mycursor.fetchall()
-
-    transcriptions = []
-
-    for row in result:
-        transcription = {'id': row[0], 'text': row[1], 'source': row[2], 'source_type': row[3], 'api_key': row[4]}
-        transcriptions.append(transcription)
-
-    return {'transcriptions': transcriptions}
-
-@app.get('/API_KEY_TABLE')
-async def api_key_table_verification():
-    mycursor = database.cursor()
-    mycursor.execute("SELECT * FROM api_keys")
-    result = mycursor.fetchall()
-
-    api_keys = []
-
-    for row in result:
-        api_key = {'id': row[0], 'api_key': row[1]}
-        api_keys.append(api_key)
-
-    return {'api_keys': api_keys}
-
-@api_key_router.post("/API_KEY")
+@api_key_router.post("/API-KEY")
 async def create_your_api_key():
     # Geração de uma UUID API Key aleatória
     api_key = str(uuid.uuid4())
@@ -87,7 +64,7 @@ async def create_your_api_key():
     return {"message": 'Your API Key was created. Please save it somewhere safe and accessibe, you will need it to interact with the API', "api_key": api_key}
 
 @transcriptions_router.get('/TRANSCRIPTIONS')
-async def get_transcriptions(api_key: str = Header(...)):
+async def get_all_user_transcriptions(api_key: str = Header(...)):
     # Verifica se a API Key existe
     mycursor = database.cursor()
     sql_check_api_key = "SELECT COUNT(*) FROM api_keys WHERE api_key = %s"
@@ -97,7 +74,7 @@ async def get_transcriptions(api_key: str = Header(...)):
     if api_key_count == 0:
         return {'message': 'ERROR: The provided API Key does not exist.'}
     
-    # Seleciona transcrições associadas com a API Key utilizada
+    # Verifica se existem transcrições associadas com a API Key utilizada
     sql_select = "SELECT * FROM transcriptions WHERE api_key = %s"
     mycursor.execute(sql_select, (api_key,))
     result = mycursor.fetchall()
@@ -113,9 +90,26 @@ async def get_transcriptions(api_key: str = Header(...)):
 
     return {'transcriptions': transcriptions}
 
+@transcriptions_router.get('/TRANSCRIPTIONS/{count}')
+async def count_user_transcriptions(api_key: str = Header(...)):
+    # Verifica se a API Key existe
+    mycursor = database.cursor()
+    sql_check_api_key = "SELECT COUNT(*) FROM api_keys WHERE api_key = %s"
+    mycursor.execute(sql_check_api_key, (api_key,))
+    api_key_count = mycursor.fetchone()[0]
+    
+    if api_key_count == 0:
+        return {'message': 'ERROR: The provided API Key does not exist.'}
 
-@transcriptions_router.post('/TRANSCRIPTION_FILE')
-async def insert_transcription_via_file(ficheiro: UploadFile = File(...), api_key: str = Header(...)):
+    # Esta query de SQL faz a contagem das transcrições que estão associadas à API key
+    sql_count_transcriptions = "SELECT COUNT(*) FROM transcriptions WHERE api_key = %s"
+    mycursor.execute(sql_count_transcriptions, (api_key,))
+    transcription_count = mycursor.fetchone()[0]
+
+    return {'message': f'You have {transcription_count} transcription(s) associated to your API Key.'}
+
+@transcriptions_router.post('/TRANSCRIPTION/{file}')
+async def insert_transcription_via_file_submission(ficheiro: UploadFile = File(...), api_key: str = Header(...)):
     # Verifica se a API Key existe
     mycursor = database.cursor()
     sql_check_api_key = "SELECT COUNT(*) FROM api_keys WHERE api_key = %s"
@@ -146,8 +140,8 @@ async def insert_transcription_via_file(ficheiro: UploadFile = File(...), api_ke
      
     return {'message': f'Transcription with the ID number {id_transcription} was created successfully via file submission!', 'transcribed_text': {text}}
 
-@transcriptions_router.post('/TRANSCRIPTION_YOUTUBE')
-async def insert_transcription_via_youtube(video_url: str, api_key: str = Header(...)):
+@transcriptions_router.post('/TRANSCRIPTION/{youtube}')
+async def insert_transcription_via_youtube_url(video_url: str, api_key: str = Header(...)):
     
     # Verifica se a API Key existe
     mycursor = database.cursor()
@@ -184,6 +178,31 @@ async def insert_transcription_via_youtube(video_url: str, api_key: str = Header
 class EditTranscriptionRequest(BaseModel):
     updated_text: str
     
+@transcriptions_router.get('/TRANSCRIPTION/{id}')
+async def get_transcription_by_id(id: int, api_key: str = Header(...)):
+    
+    # Verifica se a API Key existe
+    mycursor = database.cursor()
+    sql_check_api_key = "SELECT COUNT(*) FROM api_keys WHERE api_key = %s"
+    mycursor.execute(sql_check_api_key, (api_key,))
+    api_key_count = mycursor.fetchone()[0]
+
+    if api_key_count == 0:
+        return {'message': 'ERROR: The provided API Key does not exist.'}
+
+    # Esta query de SQL permite verificar simultaneamente se o ID da transcrição existe e se este está associado à API Key fornecida, para além de permitir o acesso aos dados provenientes da query, uma vez que é um "SELECT" e não um "SELECT COUNT(*)"
+    sql_check_transcription = "SELECT * FROM transcriptions WHERE id_transcription = %s AND api_key = %s"
+    mycursor.execute(sql_check_transcription, (id, api_key))
+    result = mycursor.fetchone()
+
+    if result is None:
+        return {'message': 'ERROR: The ID of transcription provided does not exist or cannot be managed by this API Key.'}
+
+    transcription = {'id_transcription': result[0], 'text': result[1], 'source': result[2], 'source_type': result[3]}
+
+    return {'transcription': transcription}
+
+    
 @transcriptions_router.put('/TRANSCRIPTION/{id}')
 async def edit_transcription(id_transcription: int, request_data: EditTranscriptionRequest, api_key: str = Header(...)):
     
@@ -202,16 +221,16 @@ async def edit_transcription(id_transcription: int, request_data: EditTranscript
     transcription_count = mycursor.fetchone()[0]
 
     if transcription_count == 0:
-        return {'message': 'ERROR: The ID of transcription provided does not exist or cannot be managed by this API Key.'}
+        return {'message': 'ERROR: The ID of the transcription provided does not exist or cannot be managed by this API Key.'}
 
-    updated_text = request_data.updated_text #atribuição do valor pedido no body request a uma variável
+    updated_text = request_data.updated_text #atribuição do valor da transcrição alterada no pedido do body request a uma variável
 
     # Atualização da transcrição na tabela da base de dados
     sql_update = "UPDATE transcriptions SET text = %s WHERE id_transcription = %s"
     mycursor.execute(sql_update, (updated_text, id_transcription))
     database.commit()
 
-    return {'message': f'SUCCESS: Transcription with the ID number {id_transcription} was updated successfully!', 'modified_text': updated_text}
+    return {'message': f'SUCCESS: Transcription with the ID number {id_transcription} was updated successfully!', 'modified_transcription': updated_text}
 
 @transcriptions_router.delete('/TRANSCRIPTION/{id}')
 async def delete_transcription(id_transcription: int, api_key: str = Header(...)):
@@ -239,11 +258,31 @@ async def delete_transcription(id_transcription: int, api_key: str = Header(...)
 
     return {'message': f'SUCCESS: Transcription with the ID number {id_transcription} was deleted successfully!'}
 
+@transcriptions_router.delete('/TRANSCRIPTIONS/{all}')
+async def delete_all_transcriptions_by_user(api_key: str = Header(...)):
+    # Verifica se a API Key existe
+    mycursor = database.cursor()
+    sql_check_api_key = "SELECT COUNT(*) FROM api_keys WHERE api_key = %s"
+    mycursor.execute(sql_check_api_key, (api_key,))
+    api_key_count = mycursor.fetchone()[0]
+
+    if api_key_count == 0:
+        return {'message': 'ERROR: The provided API Key does not exist.'}
+
+    # Apaga todas as transcrições associadas com a API Key
+    sql_delete_transcriptions = "DELETE FROM transcriptions WHERE api_key = %s"
+    mycursor.execute(sql_delete_transcriptions, (api_key,))
+    database.commit()
+
+    deleted_count = mycursor.rowcount
+    
+    return {'message': f'SUCCESS: Deleted a total of {deleted_count} transcription(s) associated with your API Key.'}
+
 class SmartSearchRequest(BaseModel):
     id_transcription: int
     query: str
     
-@smart_search_router.post('/SMART_SEARCH')
+@smart_search_router.post('/SMART-SEARCH')
 async def smart_search(id_transcription: int, query: str):
     # Obtém a transcrição escolhida da base de dados
     mycursor = database.cursor()
@@ -273,7 +312,35 @@ async def smart_search(id_transcription: int, query: str):
 
     return {'query': query, 'answer': answer}
 
+@database_router.get('/TRANSCRIPTIONS-TABLE')
+async def transcriptions_table_verification():
+    mycursor = database.cursor()
+    mycursor.execute("SELECT * FROM transcriptions")
+    result = mycursor.fetchall()
+
+    transcriptions = []
+
+    for row in result:
+        transcription = {'id': row[0], 'text': row[1], 'source': row[2], 'source_type': row[3], 'api_key': row[4]}
+        transcriptions.append(transcription)
+
+    return {'transcriptions': transcriptions}
+
+@database_router.get('/API-KEY-TABLE')
+async def api_key_table_verification():
+    mycursor = database.cursor()
+    mycursor.execute("SELECT * FROM api_keys")
+    result = mycursor.fetchall()
+
+    api_keys = []
+
+    for row in result:
+        api_key = {'id': row[0], 'api_key': row[1]}
+        api_keys.append(api_key)
+
+    return {'api_keys': api_keys}
+
 app.include_router(api_key_router)
 app.include_router(transcriptions_router)
 app.include_router(smart_search_router)
-
+app.include_router(database_router)
