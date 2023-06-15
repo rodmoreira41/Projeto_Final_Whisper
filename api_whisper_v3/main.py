@@ -90,6 +90,7 @@ async def get_all_user_transcriptions(api_key: str = Header(...)):
 
     return {'transcriptions': transcriptions}
 
+''' # Endpoint para retornar uma contagem das transcrições efetuadas dada uma API Key
 @transcriptions_router.get('/TRANSCRIPTIONS/{count}')
 async def count_user_transcriptions(api_key: str = Header(...)):
     # Verifica se a API Key existe
@@ -107,8 +108,8 @@ async def count_user_transcriptions(api_key: str = Header(...)):
     transcription_count = mycursor.fetchone()[0]
 
     return {'message': f'You have {transcription_count} transcription(s) associated to your API Key.'}
-
-@transcriptions_router.post('/TRANSCRIPTION/{file}')
+'''
+@transcriptions_router.post('/TRANSCRIPTION/{file-submission}')
 async def insert_transcription_via_file_submission(ficheiro: UploadFile = File(...), api_key: str = Header(...)):
     # Verifica se a API Key existe
     mycursor = database.cursor()
@@ -140,7 +141,7 @@ async def insert_transcription_via_file_submission(ficheiro: UploadFile = File(.
      
     return {'message': f'Transcription with the ID number {id_transcription} was created successfully via file submission!', 'transcribed_text': {text}}
 
-@transcriptions_router.post('/TRANSCRIPTION/{youtube}')
+@transcriptions_router.post('/TRANSCRIPTION/{youtube-url}')
 async def insert_transcription_via_youtube_url(video_url: str, api_key: str = Header(...)):
     
     # Verifica se a API Key existe
@@ -258,7 +259,8 @@ async def delete_transcription(id_transcription: int, api_key: str = Header(...)
 
     return {'message': f'SUCCESS: Transcription with the ID number {id_transcription} was deleted successfully!'}
 
-@transcriptions_router.delete('/TRANSCRIPTIONS/{all}')
+''' #Endpoint para apagar todas as transcrições associadas a uma dada API Key
+@transcriptions_router.delete('/TRANSCRIPTIONS')
 async def delete_all_transcriptions_by_user(api_key: str = Header(...)):
     # Verifica se a API Key existe
     mycursor = database.cursor()
@@ -277,6 +279,7 @@ async def delete_all_transcriptions_by_user(api_key: str = Header(...)):
     deleted_count = mycursor.rowcount
     
     return {'message': f'SUCCESS: Deleted a total of {deleted_count} transcription(s) associated with your API Key.'}
+'''
 
 class SmartSearchRequest(BaseModel):
     id_transcription: int
