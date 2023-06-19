@@ -4,12 +4,12 @@ from pydantic import BaseModel
 import mysql.connector
 import whisper, uuid, os, openai
 
-#openai.api_key = "<YOUR-API-KEY>"
+#openai.api_key = "<API-KEY-OPENAI>"
 
 tags_metadata = [
     {
         "name": "API Key Creation",
-        "description": "Esta secção serve para efetuar a criação de API Keys, necessárias para interagção do utilizador com a API.",
+        "description": "Esta secção serve para efetuar a criação de API Keys, necessárias para interação do utilizador com a API.",
     },
     {
         "name": "Transcrições",
@@ -17,11 +17,11 @@ tags_metadata = [
     },
     {
         "name": "Smart Search Engine",
-        "description": "Esta é uma secção em desenvolvimento.",
+        "description": "Nesta secção, o utilizador poderá fazer uma pergunta relacionada com uma das transcrições efetuadas.",
     },
     {
         "name": "Database Verification",
-        "description": "Esta secção permite controlar e validar os registos das bases de dados 'transcriptions' e 'api_keys', pelo que serve apenas como demonstração.",
+        "description": "Esta secção permite controlar e validar os registos das bases de dados 'transcriptions' e 'api_keys', pelo que serve apenas para demonstrar o estado das tabelas à medida que os pedidos vão sendo efetuados.",
     },
 ]
 
@@ -39,7 +39,7 @@ database = mysql.connector.connect(
     host="localhost",
     user="root", # ou o utilizador da máquina local
     password="12345678", # ou a password do utilizador da máquina local
-    database="whisper_project_v2" #"video_transcriptions"
+    database="whisper_project_v2" # a base de dados deverá ser criada localmente no MySQL Workbench, sendo que esta se encontra na pasta ./db/db_v3.sql 
 )
 
 model = whisper.load_model("base")
@@ -49,7 +49,7 @@ transcriptions_router = APIRouter(prefix="", tags=["Transcrições"])
 smart_search_router = APIRouter(prefix="", tags=["Smart Search Engine"])
 database_router = APIRouter(prefix="", tags=["Database Verification"])
 
-@api_key_router.post("/API-KEY")
+@api_key_router.post("/api-key")
 async def create_your_api_key():
     # Geração de uma UUID API Key aleatória
     api_key = str(uuid.uuid4())
@@ -63,7 +63,7 @@ async def create_your_api_key():
     # Divulgação da API Key com o utilizador
     return {"message": 'Your API Key was created. Please save it somewhere safe and accessibe, you will need it to interact with the API', "api_key": api_key}
 
-@transcriptions_router.get('/TRANSCRIPTIONS')
+@transcriptions_router.get('/transcriptions')
 async def get_all_user_transcriptions(api_key: str = Header(...)):
     # Verifica se a API Key existe
     mycursor = database.cursor()
@@ -91,7 +91,7 @@ async def get_all_user_transcriptions(api_key: str = Header(...)):
     return {'transcriptions': transcriptions}
 
 ''' # Endpoint para retornar uma contagem das transcrições efetuadas dada uma API Key
-@transcriptions_router.get('/TRANSCRIPTIONS/{count}')
+@transcriptions_router.get('/transcriptionS/{count}')
 async def count_user_transcriptions(api_key: str = Header(...)):
     # Verifica se a API Key existe
     mycursor = database.cursor()
@@ -109,7 +109,7 @@ async def count_user_transcriptions(api_key: str = Header(...)):
 
     return {'message': f'You have {transcription_count} transcription(s) associated to your API Key.'}
 '''
-@transcriptions_router.post('/TRANSCRIPTION/{file-submission}')
+@transcriptions_router.post('/transcription/{file-submission}')
 async def insert_transcription_via_file_submission(ficheiro: UploadFile = File(...), api_key: str = Header(...)):
     # Verifica se a API Key existe
     mycursor = database.cursor()
@@ -141,7 +141,7 @@ async def insert_transcription_via_file_submission(ficheiro: UploadFile = File(.
      
     return {'message': f'Transcription with the ID number {id_transcription} was created successfully via file submission!', 'transcribed_text': {text}}
 
-@transcriptions_router.post('/TRANSCRIPTION/{youtube-url}')
+@transcriptions_router.post('/transcription/{youtube-url}')
 async def insert_transcription_via_youtube_url(video_url: str, api_key: str = Header(...)):
     
     # Verifica se a API Key existe
@@ -179,7 +179,7 @@ async def insert_transcription_via_youtube_url(video_url: str, api_key: str = He
 class EditTranscriptionRequest(BaseModel):
     updated_text: str
     
-@transcriptions_router.get('/TRANSCRIPTION/{id}')
+@transcriptions_router.get('/transcription/{id}')
 async def get_transcription_by_id(id: int, api_key: str = Header(...)):
     
     # Verifica se a API Key existe
@@ -204,7 +204,7 @@ async def get_transcription_by_id(id: int, api_key: str = Header(...)):
     return {'transcription': transcription}
 
     
-@transcriptions_router.put('/TRANSCRIPTION/{id}')
+@transcriptions_router.put('/transcription/{id}')
 async def edit_transcription(id_transcription: int, request_data: EditTranscriptionRequest, api_key: str = Header(...)):
     
     # Verifica se a API Key existe
@@ -233,7 +233,7 @@ async def edit_transcription(id_transcription: int, request_data: EditTranscript
 
     return {'message': f'SUCCESS: Transcription with the ID number {id_transcription} was updated successfully!', 'modified_transcription': updated_text}
 
-@transcriptions_router.delete('/TRANSCRIPTION/{id}')
+@transcriptions_router.delete('/transcription/{id}')
 async def delete_transcription(id_transcription: int, api_key: str = Header(...)):
     # Verifica se a API Key existe
     mycursor = database.cursor()
@@ -259,8 +259,8 @@ async def delete_transcription(id_transcription: int, api_key: str = Header(...)
 
     return {'message': f'SUCCESS: Transcription with the ID number {id_transcription} was deleted successfully!'}
 
-''' #Endpoint para apagar todas as transcrições associadas a uma dada API Key
-@transcriptions_router.delete('/TRANSCRIPTIONS')
+''' # Endpoint para apagar todas as transcrições associadas a uma dada API Key
+@transcriptions_router.delete('/transcriptionS')
 async def delete_all_transcriptions_by_user(api_key: str = Header(...)):
     # Verifica se a API Key existe
     mycursor = database.cursor()
@@ -285,8 +285,26 @@ class SmartSearchRequest(BaseModel):
     id_transcription: int
     query: str
     
-@smart_search_router.post('/SMART-SEARCH')
-async def smart_search(id_transcription: int, query: str):
+@smart_search_router.post('/smart-search')
+async def smart_search_engine(id_transcription: int, query: str, api_key: str = Header(...)):
+    # Verifica se a API Key existe
+    mycursor = database.cursor()
+    sql_check_api_key = "SELECT COUNT(*) FROM api_keys WHERE api_key = %s"
+    mycursor.execute(sql_check_api_key, (api_key,))
+    api_key_count = mycursor.fetchone()[0]
+
+    if api_key_count == 0:
+        return {'message': 'ERROR: The provided API Key does not exist.'}
+
+    # Esta query de SQL permite verificar simultaneamente se o ID da transcrição existe e se este está associado à API Key fornecida
+    sql_check_transcription = "SELECT COUNT(*) FROM transcriptions WHERE id_transcription = %s AND api_key = %s"
+    mycursor.execute(sql_check_transcription, (id_transcription, api_key))
+    transcription_count = mycursor.fetchone()[0]
+
+    if transcription_count == 0:
+        return {'message': 'ERROR: The ID of transcription provided does not exist or cannot be managed by this API Key.'}
+
+    
     # Obtém a transcrição escolhida da base de dados
     mycursor = database.cursor()
     sql_select = "SELECT text FROM transcriptions WHERE id_transcription = %s"
@@ -301,8 +319,7 @@ async def smart_search(id_transcription: int, query: str):
     # Efetua uma "Smart Search" através da API do OpenAI
     response = openai.Completion.create(
         engine="text-davinci-003",
-        prompt=query,
-        documents=[transcription_text],
+        prompt=query + "\n\n" + transcription_text,
         max_tokens=100,
         temperature=0.7,
         top_p=1.0,
@@ -315,7 +332,7 @@ async def smart_search(id_transcription: int, query: str):
 
     return {'query': query, 'answer': answer}
 
-@database_router.get('/TRANSCRIPTIONS-TABLE')
+@database_router.get('/transcriptions-table')
 async def transcriptions_table_verification():
     mycursor = database.cursor()
     mycursor.execute("SELECT * FROM transcriptions")
@@ -329,7 +346,7 @@ async def transcriptions_table_verification():
 
     return {'transcriptions': transcriptions}
 
-@database_router.get('/API-KEY-TABLE')
+@database_router.get('/api-key-table')
 async def api_key_table_verification():
     mycursor = database.cursor()
     mycursor.execute("SELECT * FROM api_keys")
