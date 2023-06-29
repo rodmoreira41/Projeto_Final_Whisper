@@ -13,7 +13,7 @@ model = whisper.load_model("base")
 video = input("Coloque aqui o caminho do vídeo que pretende transcrever e carregue no enter: ")
 transcription = model.transcribe(video)
 text = transcription["text"]
-#caminho do video: exemplos_videos/howAIwillchangetheworld.mp3
+#exemplos_videos/howAIwillchangetheworld.mp3
 #exemplos_videos\X2Download.app-Does 1_0 = Infinity_ #shorts(720p).mp4
 
 mycursor = database.cursor()
