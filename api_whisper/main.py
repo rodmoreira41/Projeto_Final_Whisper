@@ -137,7 +137,7 @@ async def insert_transcription_via_file_submission(ficheiro: UploadFile = File(.
 
     id_transcription = mycursor.lastrowid  # Determina o ID da última transcrição inserida, para demonstrá-lo na mensagem de retorno
     
-    os.remove(temp_file_path) # faz a limpeza da pasta temporária onde foi guardado o ficheiro
+    os.remove(temp_file_path) # retira o ficheiro temporário da pasta temporária onde foi guardado
      
     return {'message': f'Transcription with the ID number {id_transcription} was created successfully via file submission!', 'transcribed_text': {text}}
 
