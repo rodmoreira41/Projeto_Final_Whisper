@@ -347,7 +347,6 @@ async def smart_search_engine(id_transcription: int, query: str, api_key: str = 
 
     if transcription_count == 0:
         return {'message': 'ERROR: The ID of transcription provided does not exist or cannot be managed by this API Key.'}
-
     
     # Obtém a transcrição escolhida da base de dados
     mycursor = database.cursor()
