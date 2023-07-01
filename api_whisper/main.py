@@ -111,6 +111,7 @@ async def count_user_transcriptions(api_key: str = Header(...)):
 '''
 @transcriptions_router.post('/transcription/{file-submission}')
 async def insert_transcription_via_file_submission(ficheiro: UploadFile = File(...), api_key: str = Header(...)):
+    
     # Verifica se a API Key existe
     mycursor = database.cursor()
     sql_check_api_key = "SELECT COUNT(*) FROM api_keys WHERE api_key = %s"
@@ -137,7 +138,7 @@ async def insert_transcription_via_file_submission(ficheiro: UploadFile = File(.
 
     id_transcription = mycursor.lastrowid  # Determina o ID da última transcrição inserida, para demonstrá-lo na mensagem de retorno
     
-    os.remove(temp_file_path) # retira o ficheiro temporário da pasta temporária onde foi guardado
+    os.remove(temp_file_path) # Retira o ficheiro da pasta temporária onde foi guardado
      
     return {'message': f'Transcription with the ID number {id_transcription} was created successfully via file submission!', 'transcribed_text': {text}}
 
@@ -153,7 +154,7 @@ async def insert_transcription_via_youtube_url(video_url: str, api_key: str = He
     if api_key_count == 0:
         return {'message': 'ERROR: The provided API Key does not exist.'}
     
-    # Download do vídeo do YouTube no formato de um ficheiro MP4
+    # Definição da localização do vídeo do YouTube no formato de um ficheiro MP4
     temp_file_path = "tmp/video.mp4"
 
     youtube = YouTube(video_url)
@@ -172,7 +173,7 @@ async def insert_transcription_via_youtube_url(video_url: str, api_key: str = He
 
     id_transcription = mycursor.lastrowid  # Determina o ID da última transcrição inserida, para demonstrá-lo na mensagem de retorno
 
-    os.remove(temp_file_path) # faz a limpeza da pasta temporária onde foi guardado o ficheiro
+    os.remove(temp_file_path) # Retira o ficheiro da pasta temporária onde foi guardado
 
     return {'message': f'Transcription with the ID number {id_transcription} was created successfully via Youtube link!', 'transcribed_text': {text}}
 
