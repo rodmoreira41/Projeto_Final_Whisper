@@ -2,7 +2,7 @@ from fastapi import FastAPI, UploadFile, File, APIRouter, Header
 from pytube import YouTube
 from pydantic import BaseModel
 import mysql.connector
-import whisper, uuid, os, openai
+import whisper, uuid, os, openai, youtube_dl
 
 #openai.api_key = "<API-KEY-OPENAI>"
 
@@ -176,6 +176,49 @@ async def insert_transcription_via_youtube_url(video_url: str, api_key: str = He
     os.remove(temp_file_path) # Retira o ficheiro da pasta temporária onde foi guardado
 
     return {'message': f'Transcription with the ID number {id_transcription} was created successfully via Youtube link!', 'transcribed_text': {text}}
+
+''' # Endpoint de inserção do vídeo através do youtube_dl em vez do pytube
+
+@transcriptions_router.post('/transcription/{youtube-url}')
+async def insert_transcription_via_youtube(video_url: str, api_key: str = Header(...)):
+    # Verifica se a API Key existe
+    mycursor = database.cursor()
+    sql_check_api_key = "SELECT COUNT(*) FROM api_keys WHERE api_key = %s"
+    mycursor.execute(sql_check_api_key, (api_key,))
+    api_key_count = mycursor.fetchone()[0]
+
+    if api_key_count == 0:
+        return {'message': 'ERROR: The provided API Key does not exist.'}
+
+    # Obtenção do áudio do vídeo do YouTube
+    ydl_opts = {
+        'format': 'bestaudio/best',
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'wav',
+            'preferredquality': '192',
+        }],
+        'outtmpl': 'tmp/audio.wav',
+    }
+    with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+        try:
+            ydl.download([video_url])
+        except youtube_dl.DownloadError:
+            return {'message': 'ERROR: Unable to download the YouTube video.'}
+
+    # Transcrição do áudio através do modelo Whisper
+    transcription = model.transcribe('tmp/audio.wav')
+    text = transcription["text"]
+
+    # Inserção da transcrição na tabela "transcriptions" da base de dados
+    sql_insert = "INSERT INTO transcriptions (text, source, source_type, api_key) VALUES (%s, %s, %s, %s)"
+    mycursor.execute(sql_insert, (text, video_url, 'youtube_url', api_key))
+    database.commit()
+
+    id_transcription = mycursor.lastrowid  # Determina o ID da última transcrição inserida, para demonstrá-lo na mensagem de retorno
+
+    return {'message': f'Transcription with the ID number {id_transcription} was created successfully via YouTube!', 'transcribed_text': text}
+'''
 
 class EditTranscriptionRequest(BaseModel):
     updated_text: str
