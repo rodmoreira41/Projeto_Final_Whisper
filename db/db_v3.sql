@@ -16,7 +16,7 @@ CREATE TABLE `transcriptions` (
   `source` varchar(200),
   `source_type` varchar(20),
   `api_key` VARCHAR(255) DEFAULT NULL,
-  PRIMARY KEY (`id_transcription`),
+  PRIMARY KEY (`id_transcription`)
 ) ENGINE=InnoDB;
 
 -- GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' IDENTIFIED BY '12345678'
