@@ -219,9 +219,6 @@ async def insert_transcription_via_youtube(video_url: str, api_key: str = Header
 
     return {'message': f'Transcription with the ID number {id_transcription} was created successfully via YouTube!', 'transcribed_text': text}
 '''
-
-class EditTranscriptionRequest(BaseModel):
-    updated_text: str
     
 @transcriptions_router.get('/transcription/{id}')
 async def get_transcription_by_id(id: int, api_key: str = Header(...)):
@@ -247,6 +244,8 @@ async def get_transcription_by_id(id: int, api_key: str = Header(...)):
 
     return {'transcription': transcription}
 
+class EditTranscriptionRequest(BaseModel):
+    updated_text: str
     
 @transcriptions_router.put('/transcription/{id}')
 async def edit_transcription(id_transcription: int, request_data: EditTranscriptionRequest, api_key: str = Header(...)):
