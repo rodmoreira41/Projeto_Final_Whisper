@@ -8,6 +8,7 @@ import whisper, uuid, os, openai
 
 #openai.api_key = "<API-KEY-OPENAI>"
 
+
 tags_metadata = [
     {
         "name": "API Key Creation",
@@ -182,7 +183,7 @@ async def insert_transcription_via_youtube_url(video_url: str, api_key: str = He
 '''
 
 # Endpoint de inserção do vídeo através do yt_dlp em vez do pytube
-@transcriptions_router.post('/transcription/{youtube-url}/2')
+@transcriptions_router.post('/transcription/{youtube-url}')
 async def insert_transcription_via_youtube_url(video_url: str, api_key: str = Header(...)):
     
     # Verifica se a API Key existe
