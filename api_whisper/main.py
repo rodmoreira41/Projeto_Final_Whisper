@@ -175,7 +175,7 @@ async def insert_transcription_via_youtube_url(video_url: str, api_key: str = He
 
     os.remove(temp_file_path) # Retira o ficheiro da pasta temporária onde foi guardado
 
-    return {'message': f'Transcription with the ID number {id_transcription} was created successfully via Youtube link!', 'transcribed_text': {text}}
+    return {'message': f'Transcription with the ID number {id_transcription} was created successfully via Youtube URL!', 'transcribed_text': {text}}
 
 ''' # Endpoint de inserção do vídeo através do youtube_dl em vez do pytube
 
