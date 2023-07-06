@@ -1,8 +1,10 @@
-from fastapi import FastAPI, UploadFile, File, APIRouter, Header
+from fastapi import FastAPI, UploadFile, File, APIRouter, Header 
 from pytube import YouTube
 from pydantic import BaseModel
+from yt_dlp import YoutubeDL #pip install yt-dlp
 import mysql.connector
-import whisper, uuid, os, openai, youtube_dl
+import whisper, uuid, os, openai
+#pip install uvicorn
 
 #openai.api_key = "<API-KEY-OPENAI>"
 
@@ -61,7 +63,7 @@ async def create_your_api_key():
     database.commit()
 
     # Divulgação da API Key com o utilizador
-    return {"message": 'Your API Key was created. Please save it somewhere safe and accessibe, you will need it to interact with the API', "api_key": api_key}
+    return {"message": 'Your API Key was created. Please save it somewhere safe and accessible, you will need it to interact with the API', "api_key": api_key}
 
 @transcriptions_router.get('/transcriptions')
 async def get_all_user_transcriptions(api_key: str = Header(...)):
@@ -142,6 +144,7 @@ async def insert_transcription_via_file_submission(ficheiro: UploadFile = File(.
      
     return {'message': f'Transcription with the ID number {id_transcription} was created successfully via file submission!', 'transcribed_text': {text}}
 
+''' # Endpoint de inserção do vídeo através do pytube, não funciona
 @transcriptions_router.post('/transcription/{youtube-url}')
 async def insert_transcription_via_youtube_url(video_url: str, api_key: str = Header(...)):
     
@@ -176,50 +179,48 @@ async def insert_transcription_via_youtube_url(video_url: str, api_key: str = He
     os.remove(temp_file_path) # Retira o ficheiro da pasta temporária onde foi guardado
 
     return {'message': f'Transcription with the ID number {id_transcription} was created successfully via Youtube URL!', 'transcribed_text': {text}}
+'''
 
-''' # Endpoint de inserção do vídeo através do youtube_dl em vez do pytube
-
-@transcriptions_router.post('/transcription/{youtube-url}')
-async def insert_transcription_via_youtube(video_url: str, api_key: str = Header(...)):
+# Endpoint de inserção do vídeo através do yt_dlp em vez do pytube
+@transcriptions_router.post('/transcription/{youtube-url}/2')
+async def insert_transcription_via_youtube_url(video_url: str, api_key: str = Header(...)):
+    
     # Verifica se a API Key existe
     mycursor = database.cursor()
     sql_check_api_key = "SELECT COUNT(*) FROM api_keys WHERE api_key = %s"
     mycursor.execute(sql_check_api_key, (api_key,))
     api_key_count = mycursor.fetchone()[0]
-
+    
     if api_key_count == 0:
         return {'message': 'ERROR: The provided API Key does not exist.'}
-
-    # Obtenção do áudio do vídeo do YouTube
+    
+    # Definição da localização do vídeo do YouTube no formato de um ficheiro MP4
+    temp_file_path = "tmp/video.mp4"
+    
+    # Download do vídeo em formato MP4 usando yt-dlp
     ydl_opts = {
         'format': 'bestaudio/best',
-        'postprocessors': [{
-            'key': 'FFmpegExtractAudio',
-            'preferredcodec': 'wav',
-            'preferredquality': '192',
-        }],
-        'outtmpl': 'tmp/audio.wav',
+        'outtmpl': temp_file_path,
     }
-    with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-        try:
-            ydl.download([video_url])
-        except youtube_dl.DownloadError:
-            return {'message': 'ERROR: Unable to download the YouTube video.'}
+    with YoutubeDL(ydl_opts) as ydl:
+        ydl.download([video_url])
 
-    # Transcrição do áudio através do modelo Whisper
-    transcription = model.transcribe('tmp/audio.wav')
+    # Transcrição do ficheiro MP4 através do modelo Whisper
+    transcription = model.transcribe(temp_file_path)
     text = transcription["text"]
 
     # Inserção da transcrição na tabela "transcriptions" da base de dados
+    mycursor = database.cursor()
     sql_insert = "INSERT INTO transcriptions (text, source, source_type, api_key) VALUES (%s, %s, %s, %s)"
-    mycursor.execute(sql_insert, (text, video_url, 'youtube_url', api_key))
+    mycursor.execute(sql_insert, (text, video_url,'video_url', api_key))
     database.commit()
 
     id_transcription = mycursor.lastrowid  # Determina o ID da última transcrição inserida, para demonstrá-lo na mensagem de retorno
 
-    return {'message': f'Transcription with the ID number {id_transcription} was created successfully via YouTube!', 'transcribed_text': text}
-'''
-    
+    os.remove(temp_file_path) # Retira o ficheiro da pasta temporária onde foi guardado
+
+    return {'message': f'Transcription with the ID number {id_transcription} was created successfully via Youtube URL!', 'transcribed_text': {text}}
+
 @transcriptions_router.get('/transcription/{id}')
 async def get_transcription_by_id(id: int, api_key: str = Header(...)):
     
